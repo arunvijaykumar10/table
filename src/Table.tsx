@@ -10,15 +10,19 @@ import {
   Tooltip,
   Grid,
   Button,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Typography,
   Menu,
   MenuItem,
+  Typography,
 } from "@mui/material";
 import _ from "lodash";
-import ArrowRightIcon from "@mui/icons-material/ArrowRight";
+
+interface TableRowData {
+  id: number;
+  name: string;
+  status: string;
+  assigner: string;
+  src: string;
+}
 
 const tableData = [
   {
@@ -123,14 +127,15 @@ const tableData = [
 
 function TableComponent() {
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState<string | false>(false);
   const [menu, setMenu] = useState<string>("");
+  const [filterValue, setFilterValue] = useState<string>("");
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     if (open) {
       setOpen(false);
       setMenu("");
+      setFilterValue("");
       setMenuAnchorEl(null);
     } else {
       setOpen(true);
@@ -142,24 +147,32 @@ function TableComponent() {
     setMenuAnchorEl(null);
   };
 
-  const handleMenuItemClick = (groupBy: string) => {
-    setMenu(groupBy);
+  const handleMenuItemClick = (items: string, value?: string) => {
+    setMenu(items);
+    setFilterValue(value || "");
     setOpen(false);
+    handleMenuClose();
   };
 
-  const handleChange =
-    (panel: string) => (event: React.SyntheticEvent, newExpanded: boolean) => {
-      setExpanded(newExpanded ? panel : false);
-    };
-
+  const handleCloseFilter = () => {
+    setMenu("");
+    setFilterValue("");
+    setOpen(false);
+    setMenuAnchorEl(null);
+  };
+  const filteredData = menu
+  ? tableData.filter((row) => (row as any)[menu] === filterValue)
+  : tableData;
   const statusColor = (status: string) => {
     switch (status) {
       case "Pending":
-        return "grey";
+        return "#ef5350";
       case "Completed":
-        return "green";
+        return "#4caf50";
       case "Initial":
-        return '#ffca28';
+        return "#b0bec5";
+      default:
+        return "white";
     }
   };
 
@@ -168,157 +181,93 @@ function TableComponent() {
     textAlign: "center",
   };
 
-  const groupedData = menu ? _.groupBy(tableData, menu) : { All: tableData };
-
   return (
-    <Grid container xs={12} sm={3} md={3} lg={3}>
- <Button onClick={handleClick} variant="contained" color="primary">
-        {open ? "Groupby X" : "Groupby"}
-      </Button>
+    <Grid container xs={12} sm={6} md={3} lg={3}>
+        <Grid item>
+        <Button
+          onClick={handleClick}
+          variant="contained"
+          sx={{ backgroundColor: "grey" }}
+        >
+          {open ? "Filter" : "Filter"}
+        </Button>
+      </Grid>
+      {open && (
+        <Grid item>
+          <Button
+            onClick={handleCloseFilter}
+            variant="contained"
+            sx={{ backgroundColor: "red", color: "white" }}
+          >
+            Close Filter
+          </Button>
+        </Grid>
+      )}
       <Menu
         anchorEl={menuAnchorEl}
         open={Boolean(menuAnchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => handleMenuItemClick("name")}>
-          <Typography>Name</Typography>
+        <MenuItem onClick={() => handleMenuItemClick("status", "Initial")}>
+          <Typography>Initial</Typography>
         </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick("status")}>
-          <Typography>Status</Typography>
+        <MenuItem onClick={() => handleMenuItemClick("status", "Pending")}>
+          <Typography>Pending</Typography>
         </MenuItem>
-        <MenuItem onClick={() => handleMenuItemClick("assigner")}>
-          <Typography>Assigner</Typography>
+        <MenuItem onClick={() => handleMenuItemClick("status", "Completed")}>
+          <Typography>Completed</Typography>
         </MenuItem>
       </Menu>
 
-      {menu && !open
-        ? Object.keys(groupedData).map((key) => (
-            <Accordion
-              key={key}
-              expanded={expanded === key}
-              onChange={handleChange(key)}
-            >
-              <AccordionSummary
-                expandIcon={<ArrowRightIcon />}
-                aria-controls={`${key}-content`}
-                id={`${key}-header`}
-              >
-                <Typography>{key}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell
-                          sx={{ ...cellStyle, backgroundColor: "lightgrey" }}
-                        >
-                          ID
-                        </TableCell>
-                        <TableCell
-                          sx={{ ...cellStyle, backgroundColor: "lightgrey" }}
-                        >
-                          Name
-                        </TableCell>
-                        <TableCell
-                          sx={{ ...cellStyle, backgroundColor: "lightgrey" }}
-                        >
-                          Status
-                        </TableCell>
-                        <TableCell
-                          sx={{ ...cellStyle, backgroundColor: "lightgrey" }}
-                        >
-                          Assigner
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {groupedData[key].map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell sx={cellStyle}>{row.id}</TableCell>
-                          <TableCell sx={cellStyle}>{row.name}</TableCell>
-                          <TableCell sx={cellStyle}>
-                            <Button
-                              variant="contained"
-                              sx={{
-                                backgroundColor: statusColor(row.status),
-                                color: "white",
-                                outlineColor: statusColor(row.status),
-                              }}
-                            >
-                              {row.status}
-                            </Button>
-                          </TableCell>
-                          <TableCell sx={cellStyle}>
-                            <Tooltip title={row.assigner}>
-                              <Avatar src={row.src} />
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </AccordionDetails>
-            </Accordion>
-          ))
-        : !menu && (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell
-                      sx={{ ...cellStyle, backgroundColor: "lightgrey" }}
-                    >
-                      ID
-                    </TableCell>
-                    <TableCell
-                      sx={{ ...cellStyle, backgroundColor: "lightgrey" }}
-                    >
-                      Name
-                    </TableCell>
-                    <TableCell
-                      sx={{ ...cellStyle, backgroundColor: "lightgrey" }}
-                    >
-                      Status
-                    </TableCell>
-                    <TableCell
-                      sx={{ ...cellStyle, backgroundColor: "lightgrey" }}
-                    >
-                      Assigner
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {tableData.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell sx={cellStyle}>{row.id}</TableCell>
-                      <TableCell sx={cellStyle}>{row.name}</TableCell>
-                      <TableCell sx={cellStyle}>
-                        <Button
-                          variant="contained"
-                          sx={{
-                            backgroundColor: statusColor(row.status),
-                            color: "white",
-                            outlineColor: statusColor(row.status),
-                          }}
-                        >
-                          {row.status}
-                        </Button>
-                      </TableCell>
-                      <TableCell sx={cellStyle}>
-                        <Tooltip title={row.assigner}>
-                          <Avatar src={row.src} />
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ ...cellStyle, backgroundColor: "lightgrey" }}>
+                ID
+              </TableCell>
+              <TableCell sx={{ ...cellStyle, backgroundColor: "lightgrey" }}>
+                Name
+              </TableCell>
+              <TableCell sx={{ ...cellStyle, backgroundColor: "lightgrey" }}>
+                Status
+              </TableCell>
+              <TableCell sx={{ ...cellStyle, backgroundColor: "lightgrey" }}>
+                Assigner
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredData.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell sx={cellStyle}>{row.id}</TableCell>
+                <TableCell sx={cellStyle}>{row.name}</TableCell>
+                <TableCell sx={cellStyle}>
+                  <Button
+                    variant="contained"
+                    sx={{
+                      backgroundColor: statusColor(row.status),
+                      color: "black",
+                      outlineColor: statusColor(row.status),
+                      width:"100px"
+                    }}
+                  >
+                    {row.status}
+                  </Button>
+                </TableCell>
+                <TableCell sx={cellStyle}>
+                  <Tooltip title={row.assigner}>
+                    <Avatar src={row.src} />
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Grid>
   );
 }
 
 export default TableComponent;
+
